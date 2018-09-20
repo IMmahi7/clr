@@ -1,0 +1,36 @@
+---
+- hosts: clrdb:&{{ env }}:&{{ half_platform }}
+  tasks:
+  - name: including vars files
+    include_vars: "{{ item }}"
+    with_items:
+      - "../vars/clr_all_public.yml"
+      - "../vars/devops-access.yml"
+      - "../vars/clr_{{ env }}_confidential.yml"
+      - "../vars/clr_{{ env }}_public.yml"
+    when: (clrdb_sources is defined) and (half_platform != 'half_platform2')
+
+  - name: Database part deployment
+    include_role:
+      name: DB_Deployment
+    vars:
+      release_name: "{{ clrdb_sources | basename | splitext | first }}"
+    when: (clrdb_sources is defined) and (half_platform != 'half_platform2')
+
+- hosts: clrapp:&{{ env }}:&{{ half_platform }}
+  tasks:
+  - name: including vars files
+    include_vars: "{{ item }}"
+    with_items:
+      - "../vars/clr_all_public.yml"
+      - "../vars/devops-access.yml"
+      - "../vars/clr_{{ env }}_confidential.yml"
+      - "../vars/clr_{{ env }}_public.yml"
+    when: clrapp_sources is defined
+
+  - name: Application part deployment
+    include_role:
+      name: App_Deployment
+    vars:
+      release_name: "{{ clrapp_sources | basename | splitext | first }}"
+    when: clrapp_sources is defined

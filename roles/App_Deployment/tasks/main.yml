@@ -1,0 +1,51 @@
+---
+- name: creating {{ release_name }} folder
+  become: yes
+  file:
+    path: "/opt/application/mitro/release/{{ release_name }}"
+    owner: jboss
+    group: jboss
+    mode: 0775
+    state: directory
+
+- name: getting package of release {{ release_name }}
+  become: yes
+  get_url:
+    url: "{{ clrapp_sources }}"
+    dest: "/opt/application/mitro/release/{{ release_name }}"
+    url_username: "{{ sources_user }}"
+    url_password: "{{ sources_password }}"
+    validate_certs: "no"
+    tmp_dest: "/opt/application/mitro/release/{{ release_name }}"
+    owner: jboss
+    group: jboss
+    mode: 0775
+
+- name: unzipping package of release {{ release_name }}
+  become: yes
+  unarchive:
+    src: "/opt/application/mitro/release/{{ release_name }}/{{ release_name }}.zip"
+    dest: "/opt/application/mitro/release/{{ release_name }}"
+    owner: jboss
+    group: jboss
+    mode: 0775
+    remote_src: yes
+
+- name: change permission for {{ release_name }} release
+  become: yes
+  file:
+    path: "/opt/application/mitro/release/{{ release_name }}"
+    mode: 0775
+    owner: jboss
+    group: jboss
+    recurse: yes
+
+- name: checking CarrierNotification presence in release package
+  become: yes
+  stat:
+    path: "/opt/application/mitro/release/{{ release_name }}/{{ release_name }}_app/CarrierNotification"
+  register: carrier_presence
+
+- name: include CarrierNotification.yml
+  include: CarrierNotification.yml
+  when: carrier_presence.stat.exists == True

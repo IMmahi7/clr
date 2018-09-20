@@ -1,0 +1,77 @@
+---
+- name: getting package of release {{ release_name }}
+  become: yes
+  get_url:
+    url: "{{ clrdb_sources }}"
+    dest: "/opt/application/mitro/DB_Release"
+    url_username: "{{ sources_user }}"
+    url_password: "{{ sources_password }}"
+    validate_certs: "no"
+    tmp_dest: "/opt/application/mitro/DB_Release"
+    owner: ansible
+    group: ansible
+    mode: 0775
+
+- name: unzipping package of release {{ release_name }}
+  become: yes
+  unarchive:
+    src: "/opt/application/mitro/DB_Release/{{ release_name }}.zip"
+    dest: "/opt/application/mitro/DB_Release"
+    owner: ansible
+    group: ansible
+    mode: 0775
+    remote_src: yes
+
+- name: change permission of DB pkg
+  become: yes
+  file:
+    path: "/opt/application/mitro/DB_Release/{{ release_name }}"
+    mode: 0775
+    owner: ansible
+    group: ansible
+    recurse: yes
+
+- name: Checking DB connection for ansible user
+  become: yes
+  become_user: ansible
+  shell: exit | /opt/oracle/product/11.2.0/bin/sqlplus  {{ ora_username }}/{{ ora_password }} | grep Connected
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID: "{{ SID }}"
+  args:
+    removes: "/opt/oracle/product/11.2.0/bin/sqlplus"
+  no_log: true
+
+- name: Checking DB connection for mitromgr user
+  become: yes
+  become_user: ansible
+  shell: exit | /opt/oracle/product/11.2.0/bin/sqlplus  {{ mgr_username }}/{{ mgr_password }} | grep Connected
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID: "{{ SID }}"
+  args:
+    removes: "/opt/oracle/product/11.2.0/bin/sqlplus"
+  no_log: true
+
+- name: checking presence of count_invalid_objects_before_inst.sql
+  stat:
+    path: "/opt/application/mitro/DB_Release/{{ release_name }}/install/count_invalid_objects_before_inst.sql"
+  register: invalid_before_sql
+
+- name: including count_invalid_objects_before_inst.yml
+  include: count_invalid_objects_before_inst.yml
+  when: invalid_before_sql.stat.exists == True
+
+- name: checking presence of prerequisite_check.sql
+  stat:
+    path: "/opt/application/mitro/DB_Release/{{ release_name }}/install/prerequisite_check.sql"
+  register: prerequisite_sql
+
+- name: checking presence of mark_release_installed.sql
+  stat:
+    path: "/opt/application/mitro/DB_Release/{{ release_name }}/install/mark_release_installed.sql"
+  register: marker_sql
+
+- name: including mark_release_installed.yml
+  include: mark_release_installed.yml
+  when: marker_sql.stat.exists == True

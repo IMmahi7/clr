@@ -9,3 +9,15 @@
     mode: 0775
     remote_src: yes
 
+- name: stop tomcat services
+  become: yes
+  command: service tomcat stop warn=False
+  args: 
+    removes: /opt/application/tomcat1
+
+- name: start tomcat services
+  become: yes
+  command: service tomcat start warn=False
+  args: 
+    removes: /opt/application/tomcat1
+    

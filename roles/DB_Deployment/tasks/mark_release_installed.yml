@@ -1,0 +1,42 @@
+---
+- name: executing release marker
+  become: yes
+  become_user: ansible
+  command: "/opt/oracle/product/11.2.0/bin/sqlplus {{ ora_username }}/{{ ora_password }} @mark_release_installed.sql"
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID: "{{ SID }}"
+  args:
+    chdir: "/opt/application/mitro/DB_Release/{{ release_name }}/install"
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/install/mark_release_installed.sql"
+  no_log: true
+
+- name: checking mark_release_installed.log
+  become: yes
+  stat:
+    path: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/mark_release_installed.log"
+  register: mark_install
+
+- name: checking errors in mark_release_installed.log
+  become: yes
+  command: grep ORA- mark_release_installed.log
+  args:
+    chdir: "/opt/application/mitro/DB_Release/{{ release_name }}/logs"
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/mark_release_installed.log"
+  ignore_errors: yes
+  register: err_at_mark
+  when: mark_install.stat.exists == True
+
+- name: showing errors of mark_release_installed.log
+  become: yes
+  debug:
+    msg: "{{ err_at_mark.stdout_lines }}"
+  when: (err_at_mark is not failed) and (mark_install.stat.exists == True)
+  register: err_is_mark
+
+- name: errors is present in mark_release_installed.log--> Exiting...
+  become: yes
+  command: /bin/false
+  args:
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/mark_release_installed.log"
+  when: (err_is_mark is not skipped) and (mark_install.stat.exists == True) and (env != 'test')

@@ -31,21 +31,10 @@
     group: ansible
     recurse: yes
 
-- name: Checking DB connection for ansible user
+- name: Checking DB connection for sa user
   become: yes
-  become_user: ansible
-  shell: exit | /opt/oracle/product/11.2.0/bin/sqlplus  {{ ora_username }}/{{ ora_password }} | grep Connected
-  environment:
-    ORACLE_HOME: "{{ oracle_home }}"
-    ORACLE_SID: "{{ SID }}"
-  args:
-    removes: "/opt/oracle/product/11.2.0/bin/sqlplus"
-  no_log: true
-
-- name: Checking DB connection for mitromgr user
-  become: yes
-  become_user: ansible
-  shell: exit | /opt/oracle/product/11.2.0/bin/sqlplus  {{ mgr_username }}/{{ mgr_password }} | grep Connected
+  become_user: oracle
+  shell: exit | /opt/oracle/product/11.2.0/bin/sqlplus  {{ sa_username }}/{{ sa_password }} | grep Connected
   environment:
     ORACLE_HOME: "{{ oracle_home }}"
     ORACLE_SID: "{{ SID }}"
@@ -62,10 +51,14 @@
   include: count_invalid_objects_before_inst.yml
   when: invalid_before_sql.stat.exists == True
 
-- name: checking presence of prerequisite_check.sql
+- name: checking presence of count_invalid_objects_after_inst.sql
   stat:
-    path: "/opt/application/mitro/DB_Release/{{ release_name }}/install/prerequisite_check.sql"
-  register: prerequisite_sql
+    path: "/opt/application/mitro/DB_Release/{{ release_name }}/install/count_invalid_objects_after_inst.sql"
+  register: invalid_after_sql
+
+- name: including count_invalid_objects_after_inst.yml
+  include: count_invalid_objects_after_inst.yml
+  when: invalid_after_sql.stat.exists == True
 
 - name: checking presence of mark_release_installed.sql
   stat:

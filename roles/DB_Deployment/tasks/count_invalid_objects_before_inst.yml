@@ -1,0 +1,49 @@
+---
+- name: executing count_invalid_objects_before_inst.sql
+  become: yes
+  become_user: ansible
+  command: "/opt/oracle/product/11.2.0/bin/sqlplus {{ mgr_username }}/{{ mgr_password }} @count_invalid_objects_before_inst.sql"
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID: "{{ SID }}"
+  args:
+    chdir: "/opt/application/mitro/DB_Release/{{ release_name }}/install"
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/install/count_invalid_objects_before_inst.sql"
+  no_log: true
+  register: invalid_obj_before1
+
+- name: checking count_invalid_objects_before_inst.log
+  become: yes
+  stat:
+    path: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/count_invalid_objects_before_inst.log"
+  register: invalid_obj_before2
+
+- name: checking errors in count_invalid_objects_before_inst.log
+  become: yes
+  command: grep ORA- count_invalid_objects_before_inst.log
+  args:
+    chdir: "/opt/application/mitro/DB_Release/{{ release_name }}/logs"
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/count_invalid_objects_before_inst.log"
+  ignore_errors: yes
+  register: err_before_obj
+  when: invalid_obj_before2.stat.exists == True
+
+- name: showing errors of count_invalid_objects_before_inst.log
+  become: yes
+  debug:
+    msg: "{{ err_before_obj.stdout_lines }}"
+  when: (err_before_obj is not failed) and (invalid_obj_before2.stat.exists == True)
+  register: err_is_before_obj
+
+- name: error is present in count_invalid_objects_before_inst.sql--> Exiting...
+  become: yes
+  command: /bin/false
+  args:
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/count_invalid_objects_before_inst.log"
+  when: (err_is_before_obj is not skipped) and (invalid_obj_before2.stat.exists == True) and (env != 'test')
+
+- name: number of invalid obejects before installation
+  become: yes
+  debug:
+    msg: "{{ invalid_obj_before1.stdout_lines }}"
+  when: (invalid_obj_before2.stat.exists == True) and (env != 'test')

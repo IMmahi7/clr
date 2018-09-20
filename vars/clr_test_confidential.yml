@@ -1,4 +1,2 @@
 ---
-vault_mgr_password: mitromgr
-vault_sa_password: sa
-vault_ora_password: ansible
+vault_sa_password: dev2sa

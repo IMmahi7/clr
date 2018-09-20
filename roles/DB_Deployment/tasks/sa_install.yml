@@ -1,0 +1,42 @@
+---
+- name: executing mitromgr_install.sql
+  become: yes
+  become_user: ansible
+  command: "/opt/oracle/product/11.2.0/bin/sqlplus {{ mgr_username }}/{{ mgr_password }} @mitromgr_install.sql"
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID: "{{ SID }}"
+  args:
+    chdir: "/opt/application/mitro/DB_Release/{{ release_name }}/install"
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/install/mitromgr_install.sql"
+  no_log: true
+
+- name: checking mitromgr_install.log
+  become: yes
+  stat:
+    path: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/mitromgr_install.log"
+  register: mgr_install
+
+- name: checking errors in mitromgr_install.log
+  become: yes
+  command: grep ORA- mitromgr_install.log
+  args:
+    chdir: "/opt/application/mitro/DB_Release/{{ release_name }}/logs"
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/mitromgr_install.log"
+  ignore_errors: yes
+  register: err_at_mgr
+  when: mgr_install.stat.exists == True
+
+- name: showing errors of mitromgr_install.log
+  become: yes
+  debug:
+    msg: "{{ err_at_mgr.stdout_lines }}"
+  when: (err_at_mgr is not failed) and (mgr_install.stat.exists == True)
+  register: err_is_mgr
+
+- name: errors is present in mitromgr_install.log--> Exiting...
+  become: yes
+  command: /bin/false
+  args:
+    removes: "/opt/application/mitro/DB_Release/{{ release_name }}/logs/mitromgr_install.log"
+  when: (err_is_mgr is not skipped) and (mgr_install.stat.exists == True) and (env != 'test')

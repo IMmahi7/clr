@@ -2,9 +2,5 @@
 sources_user: "{{ vault_sources_user }}"
 sources_password: "{{ vault_sources_password }}"
 sa_password: "{{vault_sa_password}}"
-mgr_username: "mitromgr"
-mgr_password: "{{ vault_mgr_password }}"
-ora_username: "ansible"
-ora_password: "{{ vault_ora_password }}"
+sa_username: "sa"
 oracle_home: "/opt/oracle/product/12.2"
-

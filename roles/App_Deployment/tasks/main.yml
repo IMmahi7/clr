@@ -1,51 +1,62 @@
 ---
-- name: creating {{ release_name }} folder
-  become: yes
-  file:
-    path: "/opt/application/mitro/release/{{ release_name }}"
-    owner: jboss
-    group: jboss
-    mode: 0775
-    state: directory
-
 - name: getting package of release {{ release_name }}
   become: yes
   get_url:
     url: "{{ clrapp_sources }}"
-    dest: "/opt/application/mitro/release/{{ release_name }}"
+    dest: "/opt/application/snipuser/Releases"
     url_username: "{{ sources_user }}"
     url_password: "{{ sources_password }}"
     validate_certs: "no"
-    tmp_dest: "/opt/application/mitro/release/{{ release_name }}"
-    owner: jboss
-    group: jboss
+    tmp_dest: "/opt/application/snipuser/Releases"
+    owner: snipuser
+    group: snipuser
     mode: 0775
 
 - name: unzipping package of release {{ release_name }}
   become: yes
   unarchive:
-    src: "/opt/application/mitro/release/{{ release_name }}/{{ release_name }}.zip"
-    dest: "/opt/application/mitro/release/{{ release_name }}"
-    owner: jboss
-    group: jboss
+    src: "/opt/application/snipuser/Releases/{{ release_name }}.zip"
+    dest: "/opt/application/snipuser/Releases/{{ release_name }}"
+    owner: snipuser
+    group: snipuser
     mode: 0775
     remote_src: yes
 
 - name: change permission for {{ release_name }} release
   become: yes
   file:
-    path: "/opt/application/mitro/release/{{ release_name }}"
+    path: "/opt/application/snipuser/Releases/{{ release_name }}"
     mode: 0775
-    owner: jboss
-    group: jboss
+    owner: snipuser
+    group: snipuser
     recurse: yes
 
-- name: checking CarrierNotification presence in release package
+- name: checking flipapi server deployment presence in release package
   become: yes
   stat:
-    path: "/opt/application/mitro/release/{{ release_name }}/{{ release_name }}_app/CarrierNotification"
-  register: carrier_presence
+    path: "/opt/application/iisuser/Releases/{{ release_name }}/{{ release_name }}_app/java/FS/dummy.war"
+  register: flipapi_presence
 
-- name: include CarrierNotification.yml
-  include: CarrierNotification.yml
-  when: carrier_presence.stat.exists == True
+- name: include flipapi_server.yml
+  include: flipapi_server.yml
+  when: flipapi_presence.stat.exists == True
+
+- name: checking flip server deployment presence in release package
+  become: yes
+  stat:
+    path: "/opt/application/snipuser/Releases/{{ release_name }}/{{ release_name }}_app/java/FS/dummy.war"
+  register: flip_presence
+
+- name: include flip_server.yml
+  include: flip_server.yml
+  when: flip_presence.stat.exists == True
+
+- name: checking fps server deployment presence in release package
+  become: yes
+  stat:
+    path: "/opt/application/flip/Releases/{{ release_name }}/{{ release_name }}_app/java/FS/dummy.war"
+  register: fps_presence
+
+- name: include fps_server.yml
+  include: fps_server.yml
+  when: fps_presence.stat.exists == True
